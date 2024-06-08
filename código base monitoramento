@@ -1,0 +1,74 @@
+
+
+// Define o pino ao qual o sensor está conectado
+const int pinoSensor = 12; // D2 corresponde ao pino 4 no ESP8266
+
+// Variáveis para armazenar o estado atual e anterior do sensor
+int estadoAtual = LOW;
+int estadoAnterior = LOW;
+
+// Variáveis para o cálculo do fluxo de água
+unsigned int taxaFluxo;
+unsigned int fluxoTotalPulsos;
+
+// Constante para a conversão de pulsos para litros
+const float PULSOS_POR_LITRO = 450.0; // Verifique a documentação do seu sensor para o valor exato
+
+// Variáveis para o controle do tempo
+unsigned long tempoAnterior = 0;
+const long intervalo = 1000; // Intervalo de leitura em milissegundos (1 segundo)
+
+void setup() {
+  // Inicializa a comunicação serial
+  Serial.begin(9600);
+
+  // Inicializa o WiFi, mesmo que não se conecte a uma rede específica
+
+  // Define o pino do sensor como entrada
+  pinMode(pinoSensor, INPUT);
+
+  // Inicializa as variáveis de fluxo de água
+  taxaFluxo = 0;
+  fluxoTotalPulsos = 0;
+}
+
+void loop() {
+  // Obtém o tempo atual
+  unsigned long tempoAtual = millis();
+
+  // Lê o estado atual do sensor
+  estadoAtual = digitalRead(pinoSensor);
+
+  // Verifica se houve uma mudança no estado do sensor
+  if (estadoAtual != estadoAnterior) {
+    // Se houve uma mudança de LOW para HIGH, significa que um pulso foi detectado
+    if (estadoAtual == HIGH) {
+      taxaFluxo++; // Incrementa o contador de pulsos
+      fluxoTotalPulsos++; // Incrementa o total de fluxo em pulsos
+    }
+    // Atualiza o estado anterior com o estado atual
+    estadoAnterior = estadoAtual;
+  }
+
+  // Verifica se é hora de exibir as leituras
+  if (tempoAtual - tempoAnterior >= intervalo) {
+    // Atualiza o tempo anterior
+    tempoAnterior = tempoAtual;
+
+    // Calcula o fluxo médio em litros por minuto
+    float taxaFluxo_LPM = (float)taxaFluxo / 7.5;
+
+    // Calcula o fluxo total em litros
+    float fluxoTotal_Litros = (float)fluxoTotalPulsos / PULSOS_POR_LITRO;
+
+    // Exibe as leituras no monitor serial
+    Serial.print("Taxa de Fluxo (L/min): ");
+    Serial.println(taxaFluxo_LPM);
+    Serial.print("Fluxo Total (L): ");
+    Serial.println(fluxoTotal_Litros);
+
+    // Reinicia o contador de pulsos
+    taxaFluxo = 0;
+  }
+}
+
